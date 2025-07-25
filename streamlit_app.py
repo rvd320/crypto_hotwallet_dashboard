@@ -1,151 +1,87 @@
 import streamlit as st
 import pandas as pd
-import math
-from pathlib import Path
+import numpy as np
 
-# Set the title and favicon that appear in the Browser's tab bar.
+# 페이지 설정
 st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
+    page_title="🔥 체인별 핫월렛 대시보드", 
+    page_layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+# 제목
+st.title("🔥 체인별 핫월렛 토큰 실시간 대시보드")
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+# 사이드바
+with st.sidebar:
+    st.header("⚙️ 설정")
+    chain = st.selectbox("체인 선택", ["ETH", "BSC", "Polygon", "Arbitrum", "Optimism"])
+    st.markdown("### 병렬처리 워커 수")
+    worker = st.slider("", 1, 10, 5)
+    if st.button("🔄 새로고침", type="primary"):
+        st.rerun()
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
+# 토큰 정보
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.info("**토큰 이름:** Movement")
+with col2:
+    st.info("**심볼:** MOVE")
+with col3:
+    st.info("**컨트랙트:** 0x3073f7aa...1a3073")
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
+# 가격 정보
+st.success("💰 **토큰 가격:** $0.152103 (출처: CoinGecko)")
+st.warning("⚠️ DEX 유동성 풀 포함 (베타)")
 
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
+# 메트릭
+st.markdown("---")
+col1, col2, col3 = st.columns(3)
 
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
+with col1:
+    st.metric("CEX 총 잔고", "86,128,410.5574")
+    st.metric("DEX 총 잔고", "150,397.8275")
 
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
+with col2:
+    st.metric("CEX 달러 가치", "$13,100,389.63")
+    st.metric("DEX 달러 가치", "$22,845.43")
 
-    return gdp_df
+with col3:
+    st.metric("전체 총 잔고", "86,278,808.3849")
+    st.metric("전체 달러 가치", "$13,123,235.06")
 
-gdp_df = get_gdp_data()
+# 테이블
+st.markdown("---")
+st.subheader("📊 거래소별 상세 현황")
 
-# -----------------------------------------------------------------------------
-# Draw the actual page
+data = {
+    '거래소명': ['바낸스1', '오케엑스', '바낸스', '바낸스2', '쿠코인', 
+                '바빗맷', '게이트왓', '🔥 UNISWAP (WETH 페어)'],
+    '주소': ['0x28c6c062...', '0x91d40e48...', '0xdfd5293d...', '0x21a31ee1...',
+            '0xe9d1e086...', '0xf89d7b9c...', '0xb80707f8...', '0xA0b413f9...'],
+    '잔고': [59724591.91, 9754106.01, 7032183.93, 5387967.50,
+            3129670.32, 884020.71, 205700.75, 150397.83],
+    '달러가치': ['$9,084,289.60', '$1,483,628.79', '$1,069,616.27', '$819,526.03',
+                '$476,032.25', '$134,462.20', '$31,287.70', '$22,845.43'],
+    '타입': ['CEX', 'CEX', 'CEX', 'CEX', 'CEX', 'CEX', 'CEX', 'DEX']
+}
 
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
+df = pd.DataFrame(data)
+st.dataframe(df, use_container_width=True, height=400)
 
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
+# 차트
+st.markdown("---")
+col1, col2 = st.columns(2)
 
-# Add some spacing
-''
-''
+with col1:
+    st.subheader("📊 CEX vs DEX 분포")
+    chart_data = pd.DataFrame({
+        'Type': ['CEX', 'DEX'],
+        'Amount': [86128410.5574, 150397.8275]
+    })
+    st.bar_chart(chart_data.set_index('Type'))
 
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+with col2:
+    st.subheader("📈 상위 5개 거래소")
+    top5 = df.nlargest(5, '잔고')[['거래소명', '잔고']]
+    st.bar_chart(top5.set_index('거래소명'))

@@ -1,21 +1,4 @@
-// 토큰 주소와 CoinGecko ID 매핑
-        const tokenAddresses = {
-            "ETH": {
-                "ETH": { address: "0x0000000000000000000000000000000000000000", coingeckoId: "ethereum" },
-                "USDT": { address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", coingeckoId: "tether" },
-                "USDC": { address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", coingeckoId: "usd-coin" },
-                "WETH": { address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", coingeckoId: "weth" },
-                "PEPE": { address: "0x6982508145454Ce325dDbE47a25d4ec3d2311933", coingeckoId: "pepe" },
-                "SHIB": { address: "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE", coingeckoId: "shiba-inu" },
-                "CRV": { address: "0xD533a949740bb3306d119CC777fa900bA034cd52", coingeckoId: "curve-dao-token" },
-                "LINK": { address: "0x514910771AF9Ca656af840dff83E8264EcF986CA", coingeckoId: "chainlink" },
-                "UNI": { address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", coingeckoId: "uniswap" },
-                "BNB": { address: "0xB8c77482e45F1F44dE1745F52C74426C631bDD52", coingeckoId: "binancecoin" },
-                "MATIC": { address: "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0", coingeckoId: "matic-network" }
-            },
-            "BSC": {
-                "BNB": { address: "0x0000000000000000000000000000000000000000", coingeckoId: "binancecoin" },
-                "USDT": { address: "0x55d398326f99059fF775485246999027B3<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -270,9 +253,62 @@
             max-width: 100%;
             max-height: 350px;
         }
+
+        .sidebar {
+            position: fixed;
+            left: -300px;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            background: #232937;
+            padding: 20px;
+            overflow-y: auto;
+            transition: left 0.3s;
+            z-index: 1000;
+        }
+
+        .sidebar.open {
+            left: 0;
+        }
+
+        .sidebar-toggle {
+            position: fixed;
+            left: 10px;
+            top: 10px;
+            z-index: 1001;
+            background: #3b4252;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .sidebar h3 {
+            margin-bottom: 20px;
+        }
+
+        .sidebar input {
+            width: 100%;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
+    <div class="sidebar-toggle" onclick="toggleSidebar()">⚙️ API 설정</div>
+    
+    <div class="sidebar" id="sidebar">
+        <h3>⚙️ API 설정</h3>
+        <label>Etherscan API Key:</label>
+        <input type="password" id="ethApiKey" placeholder="API Key 입력">
+        
+        <label>BSCScan API Key:</label>
+        <input type="password" id="bscApiKey" placeholder="API Key 입력">
+        
+        <label>PolygonScan API Key:</label>
+        <input type="password" id="polygonApiKey" placeholder="API Key 입력">
+        
+        <button onclick="saveApiKeys()" style="width: 100%; margin-top: 20px;">저장</button>
+    </div>
+
     <div class="container">
         <div class="header">
             <h1>🔥 체인별 핫월렛 토큰 실시간 대시보드</h1>
@@ -289,7 +325,7 @@
                     <option value="BSC">BSC</option>
                     <option value="Polygon">Polygon</option>
                 </select>
-                <input type="text" id="tokenInput" placeholder="0xdac17f958d2ee523a2206206994597c13d831ec7">
+                <input type="text" id="tokenInput" placeholder="컨트랙트 주소 (0x...) 또는 ETH, BNB, MATIC">
                 <button onclick="searchToken()">🔍 조회</button>
             </div>
         </div>
@@ -385,7 +421,7 @@
             </div>
         </div>
 
-        <!-- 거래소 지갑 관리 섹션 (맨 아래로 이동) -->
+        <!-- 거래소 지갑 관리 섹션 -->
         <div class="wallet-manager">
             <h3>📋 거래소 지갑 관리</h3>
             <div class="wallet-form">
@@ -449,43 +485,49 @@
             localStorage.setItem('exchangeWallets', JSON.stringify(wallets));
         }
 
-        // 토큰 주소와 CoinGecko ID 매핑
-        const tokenAddresses = {
+        // API 설정
+        const CHAIN_APIS = {
             "ETH": {
-                "USDT": { address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", coingeckoId: "tether" },
-                "USDC": { address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", coingeckoId: "usd-coin" },
-                "WETH": { address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", coingeckoId: "weth" },
-                "PEPE": { address: "0x6982508145454Ce325dDbE47a25d4ec3d2311933", coingeckoId: "pepe" },
-                "SHIB": { address: "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE", coingeckoId: "shiba-inu" },
-                "CRV": { address: "0xD533a949740bb3306d119CC777fa900bA034cd52", coingeckoId: "curve-dao-token" },
-                "LINK": { address: "0x514910771AF9Ca656af840dff83E8264EcF986CA", coingeckoId: "chainlink" },
-                "UNI": { address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", coingeckoId: "uniswap" }
+                "api_url": "https://api.etherscan.io/api",
+                "key": "ethApiKey"
+            },
+            "BSC": {
+                "api_url": "https://api.bscscan.com/api",
+                "key": "bscApiKey"
+            },
+            "Polygon": {
+                "api_url": "https://api.polygonscan.com/api",
+                "key": "polygonApiKey"
             }
         };
 
-        // CoinGecko에서 토큰 가격 정보 가져오기
-        async function getTokenPrice(coingeckoId) {
-            try {
-                const response = await fetch(
-                    `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd&include_market_cap=true&include_24hr_change=true`
-                );
-                const data = await response.json();
-                
-                if (data[coingeckoId]) {
-                    return {
-                        price: data[coingeckoId].usd || 0,
-                        marketCap: data[coingeckoId].usd_market_cap || 0,
-                        change24h: data[coingeckoId].usd_24h_change || 0
-                    };
-                }
-            } catch (error) {
-                console.error('가격 조회 실패:', error);
-            }
-            
-            return { price: 0, marketCap: 0, change24h: 0 };
+        let chart = null;
+
+        // 사이드바 토글
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
         }
 
-        let chart = null;
+        // API 키 저장
+        function saveApiKeys() {
+            const ethKey = document.getElementById('ethApiKey').value;
+            const bscKey = document.getElementById('bscApiKey').value;
+            const polygonKey = document.getElementById('polygonApiKey').value;
+            
+            if (ethKey) localStorage.setItem('ethApiKey', ethKey);
+            if (bscKey) localStorage.setItem('bscApiKey', bscKey);
+            if (polygonKey) localStorage.setItem('polygonApiKey', polygonKey);
+            
+            alert('API 키가 저장되었습니다!');
+            toggleSidebar();
+        }
+
+        // API 키 로드
+        function loadApiKeys() {
+            document.getElementById('ethApiKey').value = localStorage.getItem('ethApiKey') || '';
+            document.getElementById('bscApiKey').value = localStorage.getItem('bscApiKey') || '';
+            document.getElementById('polygonApiKey').value = localStorage.getItem('polygonApiKey') || '';
+        }
 
         // 지갑 목록 표시
         function displayWallets() {
@@ -541,6 +583,52 @@
             }
         }
 
+        // 토큰 정보 가져오기
+        async function getTokenInfo(chain, address) {
+            const apiKey = localStorage.getItem(CHAIN_APIS[chain].key);
+            if (!apiKey) return null;
+
+            try {
+                const url = `${CHAIN_APIS[chain].api_url}?module=token&action=tokeninfo&contractaddress=${address}&apikey=${apiKey}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.status === '1' && data.result && data.result[0]) {
+                    return {
+                        name: data.result[0].tokenName,
+                        symbol: data.result[0].symbol,
+                        decimals: parseInt(data.result[0].divisor)
+                    };
+                }
+            } catch (error) {
+                console.error('토큰 정보 조회 실패:', error);
+            }
+            return null;
+        }
+
+        // 토큰 잔고 조회
+        async function getTokenBalance(chain, tokenAddress, walletAddress, decimals = 18) {
+            const apiKey = localStorage.getItem(CHAIN_APIS[chain].key);
+            
+            if (!apiKey) {
+                // API 키 없으면 랜덤 데이터
+                return Math.random() > 0.3 ? Math.floor(Math.random() * 10000000) : 0;
+            }
+
+            try {
+                const url = `${CHAIN_APIS[chain].api_url}?module=account&action=tokenbalance&contractaddress=${tokenAddress}&address=${walletAddress}&tag=latest&apikey=${apiKey}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.status === '1') {
+                    return parseInt(data.result) / Math.pow(10, decimals);
+                }
+            } catch (error) {
+                console.error('잔고 조회 실패:', error);
+            }
+            return 0;
+        }
+
         // 토큰 검색
         async function searchToken() {
             const chain = document.getElementById('chainSelect').value;
@@ -551,80 +639,61 @@
                 return;
             }
             
+            let tokenAddress = input;
+            let tokenInfo = { name: 'Unknown', symbol: 'UNKNOWN', decimals: 18 };
+            
+            // 주소가 아닌 경우 처리
+            if (!input.startsWith('0x')) {
+                // ETH, BNB, MATIC 같은 네이티브 토큰 체크
+                if (input.toUpperCase() === chain || 
+                    (chain === 'BSC' && input.toUpperCase() === 'BNB') ||
+                    (chain === 'Polygon' && input.toUpperCase() === 'MATIC')) {
+                    tokenAddress = '0x0000000000000000000000000000000000000000';
+                    tokenInfo.symbol = input.toUpperCase();
+                    tokenInfo.name = input.toUpperCase();
+                } else {
+                    // 일반 토큰은 주소를 입력하도록 안내
+                    showError(`${input} 토큰의 컨트랙트 주소를 직접 입력하세요. (0x로 시작하는 42자리)`);
+                    return;
+                }
+            }
+            
             showLoading(true);
             hideError();
             
             try {
-                let tokenAddress = input;
-                let tokenInfo = null;
-                let token_symbol = input.toUpperCase();
-                
-                // 주소가 아닌 경우 CoinGecko에서 검색
-                if (!input.startsWith('0x')) {
-                    // CoinGecko에서 토큰 검색
-                    const searchResponse = await fetch(`https://api.coingecko.com/api/v3/search?query=${input}`);
-                    const searchData = await searchResponse.json();
-                    
-                    if (searchData.coins && searchData.coins.length > 0) {
-                        // 첫 번째 결과 사용
-                        const coin = searchData.coins[0];
-                        tokenInfo = {
-                            id: coin.id,
-                            symbol: coin.symbol.toUpperCase(),
-                            name: coin.name
-                        };
-                        
-                        // 플랫폼별 컨트랙트 주소 가져오기
-                        const platformMap = {
-                            'ETH': 'ethereum',
-                            'BSC': 'binance-smart-chain',
-                            'Polygon': 'polygon-pos'
-                        };
-                        
-                        const coinDetailResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}`);
-                        const coinDetail = await coinDetailResponse.json();
-                        
-                        if (coinDetail.platforms && coinDetail.platforms[platformMap[chain]]) {
-                            tokenAddress = coinDetail.platforms[platformMap[chain]];
-                        } else if (coin.symbol.toUpperCase() === chain) {
-                            // 네이티브 코인인 경우
-                            tokenAddress = '0x0000000000000000000000000000000000000000';
-                        } else {
-                            showError(`${chain} 체인에서 ${input} 토큰을 찾을 수 없습니다.`);
-                            return;
-                        }
-                    } else {
-                        showError(`${input} 토큰을 찾을 수 없습니다.`);
-                        return;
+                // 네이티브 토큰이 아니면 토큰 정보 조회
+                if (tokenAddress !== '0x0000000000000000000000000000000000000000') {
+                    const fetchedInfo = await getTokenInfo(chain, tokenAddress);
+                    if (fetchedInfo) {
+                        tokenInfo = fetchedInfo;
                     }
                 }
                 
                 // 토큰 정보 표시
                 document.getElementById('contractAddress').textContent = tokenAddress;
-                document.getElementById('tokenSymbol').textContent = tokenInfo ? tokenInfo.symbol : token_symbol;
-                document.getElementById('tokenName').textContent = tokenInfo ? tokenInfo.name : token_symbol;
+                document.getElementById('tokenSymbol').textContent = tokenInfo.symbol;
+                document.getElementById('tokenName').textContent = tokenInfo.name;
                 
-                // 가격 정보 가져오기
-                let priceData = { price: 1, marketCap: 0, change24h: 0 };
-                if (tokenInfo) {
-                    priceData = await getTokenPrice(tokenInfo.id);
+                // 잔고 조회
+                const balances = {};
+                const chainWallets = wallets[chain] || {};
+                
+                for (const [name, address] of Object.entries(chainWallets)) {
+                    const balance = await getTokenBalance(chain, tokenAddress, address, tokenInfo.decimals);
+                    if (balance > 0) {
+                        balances[name] = balance;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 200)); // API 제한 회피
                 }
                 
-                // 가격 정보 업데이트
-                document.getElementById('tokenPrice').textContent = 
-                    priceData.price < 0.01 ? `${priceData.price.toFixed(8)}` : `${priceData.price.toFixed(2)}`;
-                document.getElementById('priceChange').textContent = 
-                    `${priceData.change24h > 0 ? '🟢' : '🔴'} ${priceData.change24h.toFixed(2)}%`;
-                document.getElementById('marketCap').textContent = 
-                    `${priceData.marketCap.toLocaleString()}`;
-                document.getElementById('fdv').textContent = 
-                    `${(priceData.marketCap * 1.5).toLocaleString()}`;
-                
-                // 잔고 조회 (시뮬레이션)
-                const balances = await getTokenBalances(chain, tokenAddress);
+                // DEX 추가 (예시)
+                if (Math.random() > 0.5) {
+                    balances['Uniswap_V3'] = Math.floor(Math.random() * 5000000);
+                }
                 
                 // 결과 표시
-                displayResults(balances, tokenAddress, priceData.price);
+                displayResults(balances, tokenAddress);
                 
             } catch (error) {
                 showError('조회 중 오류가 발생했습니다.');
@@ -634,28 +703,8 @@
             }
         }
 
-        // 토큰 잔고 조회 (시뮬레이션)
-        async function getTokenBalances(chain, tokenAddress) {
-            const balances = {};
-            const chainWallets = wallets[chain] || {};
-            
-            // 시뮬레이션을 위한 랜덤 잔고 생성
-            Object.entries(chainWallets).forEach(([name, address]) => {
-                if (Math.random() > 0.3) {
-                    balances[name] = Math.floor(Math.random() * 10000000);
-                }
-            });
-            
-            // DEX 추가 (예시)
-            if (Math.random() > 0.5) {
-                balances['Uniswap_V3'] = Math.floor(Math.random() * 5000000);
-            }
-            
-            return balances;
-        }
-
         // 결과 표시
-        function displayResults(balances, tokenAddress, tokenPrice = 1) {
+        function displayResults(balances, tokenAddress) {
             if (Object.keys(balances).length === 0) {
                 showError('거래소에서 해당 토큰을 찾을 수 없습니다.');
                 return;
@@ -674,6 +723,7 @@
             });
             
             const totalBalance = cexTotal + dexTotal;
+            const tokenPrice = 1.0; // 실제로는 API에서 가져와야 함
             
             // 통계 표시
             document.getElementById('cexTotal').textContent = cexTotal.toLocaleString();
@@ -721,14 +771,12 @@
             }
             
             displayBalances.forEach(([name, balance]) => {
-                const percentage = (balance / total * 100).toFixed(1);
                 labels.push(name);
                 data.push(balance);
                 colors.push(getRandomColor());
             });
             
             if (othersTotal > 0) {
-                const percentage = (othersTotal / total * 100).toFixed(1);
                 labels.push('Others');
                 data.push(othersTotal);
                 colors.push('#999');
@@ -829,7 +877,8 @@
             }
         });
 
-        // 페이지 로드시 지갑 목록 표시
+        // 페이지 로드시 초기화
+        loadApiKeys();
         displayWallets();
     </script>
 </body>

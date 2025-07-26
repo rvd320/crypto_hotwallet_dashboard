@@ -583,31 +583,91 @@
             }
         }
 
-        // 토큰 정보 가져오기
-        async function getTokenInfo(chain, address) {
+        // CoinGecko에서 토큰 가격 정보 가져오기
+        async function getTokenPriceFromCoinGecko(tokenAddress, chain) {
+            try {
+                // 네이티브 토큰 처리
+                let geckoId = '';
+                if (tokenAddress === '0x0000000000000000000000000000000000000000') {
+                    if (chain === 'ETH') geckoId = 'ethereum';
+                    else if (chain === 'BSC') geckoId = 'binancecoin';
+                    else if (chain === 'Polygon') geckoId = 'matic-network';
+                } else {
+                    // 일반 토큰은 주소로 검색
+                    const platform = chain === 'ETH' ? 'ethereum' : chain === 'BSC' ? 'binance-smart-chain' : 'polygon-pos';
+                    const searchUrl = `https://api.coingecko.com/api/v3/coins/${platform}/contract/${tokenAddress}`;
+                    
+                    try {
+                        const searchResponse = await fetch(searchUrl);
+                        if (searchResponse.ok) {
+                            const tokenData = await searchResponse.json();
+                            geckoId = tokenData.id;
+                        }
+                    } catch (e) {
+                        console.log('토큰 검색 실패:', e);
+                    }
+                }
+                
+                if (geckoId) {
+                    // 가격 정보 가져오기
+                    const priceUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${geckoId}&vs_currencies=usd&include_market_cap=true&include_24hr_change=true`;
+                    const priceResponse = await fetch(priceUrl);
+                    const priceData = await priceResponse.json();
+                    
+                    if (priceData[geckoId]) {
+                        // 상세 정보 가져오기
+                        const detailUrl = `https://api.coingecko.com/api/v3/coins/${geckoId}`;
+                        const detailResponse = await fetch(detailUrl);
+                        const detailData = await detailResponse.json();
+                        
+                        return {
+                            price: priceData[geckoId].usd || 0,
+                            marketCap: priceData[geckoId].usd_market_cap || 0,
+                            change24h: priceData[geckoId].usd_24h_change || 0,
+                            fdv: detailData.market_data?.fully_diluted_valuation?.usd || priceData[geckoId].usd_market_cap || 0,
+                            rank: detailData.market_cap_rank || 0,
+                            name: detailData.name || 'Unknown',
+                            symbol: detailData.symbol?.toUpperCase() || 'UNKNOWN'
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error('CoinGecko API 오류:', error);
+            }
+            
+            return null;
+        }
+
+        // 네이티브 토큰 잔고 조회
+        async function getNativeBalance(chain, walletAddress) {
             const apiKey = localStorage.getItem(CHAIN_APIS[chain].key);
-            if (!apiKey) return null;
+            
+            if (!apiKey) {
+                // API 키 없으면 랜덤 데이터
+                return Math.random() > 0.3 ? Math.random() * 100 : 0;
+            }
 
             try {
-                const url = `${CHAIN_APIS[chain].api_url}?module=token&action=tokeninfo&contractaddress=${address}&apikey=${apiKey}`;
+                const url = `${CHAIN_APIS[chain].api_url}?module=account&action=balance&address=${walletAddress}&tag=latest&apikey=${apiKey}`;
                 const response = await fetch(url);
                 const data = await response.json();
                 
-                if (data.status === '1' && data.result && data.result[0]) {
-                    return {
-                        name: data.result[0].tokenName,
-                        symbol: data.result[0].symbol,
-                        decimals: parseInt(data.result[0].divisor)
-                    };
+                if (data.status === '1') {
+                    return parseInt(data.result) / Math.pow(10, 18);
                 }
             } catch (error) {
-                console.error('토큰 정보 조회 실패:', error);
+                console.error('네이티브 잔고 조회 실패:', error);
             }
-            return null;
+            return 0;
         }
 
         // 토큰 잔고 조회
         async function getTokenBalance(chain, tokenAddress, walletAddress, decimals = 18) {
+            // 네이티브 토큰인 경우
+            if (tokenAddress === '0x0000000000000000000000000000000000000000') {
+                return getNativeBalance(chain, walletAddress);
+            }
+            
             const apiKey = localStorage.getItem(CHAIN_APIS[chain].key);
             
             if (!apiKey) {
@@ -641,6 +701,7 @@
             
             let tokenAddress = input;
             let tokenInfo = { name: 'Unknown', symbol: 'UNKNOWN', decimals: 18 };
+            let priceInfo = null;
             
             // 주소가 아닌 경우 처리
             if (!input.startsWith('0x')) {
@@ -662,18 +723,39 @@
             hideError();
             
             try {
-                // 네이티브 토큰이 아니면 토큰 정보 조회
-                if (tokenAddress !== '0x0000000000000000000000000000000000000000') {
-                    const fetchedInfo = await getTokenInfo(chain, tokenAddress);
-                    if (fetchedInfo) {
-                        tokenInfo = fetchedInfo;
-                    }
+                // CoinGecko에서 가격 정보 가져오기
+                priceInfo = await getTokenPriceFromCoinGecko(tokenAddress, chain);
+                
+                // 토큰 정보 업데이트
+                if (priceInfo) {
+                    tokenInfo.name = priceInfo.name;
+                    tokenInfo.symbol = priceInfo.symbol;
                 }
                 
                 // 토큰 정보 표시
                 document.getElementById('contractAddress').textContent = tokenAddress;
                 document.getElementById('tokenSymbol').textContent = tokenInfo.symbol;
                 document.getElementById('tokenName').textContent = tokenInfo.name;
+                
+                // 가격 정보 표시
+                if (priceInfo) {
+                    document.getElementById('tokenRank').textContent = priceInfo.rank ? `#${priceInfo.rank}` : '#N/A';
+                    document.getElementById('tokenPrice').textContent = 
+                        priceInfo.price < 0.01 ? `$${priceInfo.price.toFixed(8)}` : `$${priceInfo.price.toFixed(2)}`;
+                    document.getElementById('priceChange').textContent = 
+                        `${priceInfo.change24h > 0 ? '🟢' : '🔴'} ${priceInfo.change24h.toFixed(2)}%`;
+                    document.getElementById('marketCap').textContent = 
+                        `$${priceInfo.marketCap.toLocaleString()}`;
+                    document.getElementById('fdv').textContent = 
+                        `$${priceInfo.fdv.toLocaleString()}`;
+                } else {
+                    // 기본값 표시
+                    document.getElementById('tokenRank').textContent = '#N/A';
+                    document.getElementById('tokenPrice').textContent = '$0.00';
+                    document.getElementById('priceChange').textContent = '⚪ 0.00%';
+                    document.getElementById('marketCap').textContent = '$0';
+                    document.getElementById('fdv').textContent = '$0';
+                }
                 
                 // 잔고 조회
                 const balances = {};
@@ -693,7 +775,7 @@
                 }
                 
                 // 결과 표시
-                displayResults(balances, tokenAddress);
+                displayResults(balances, tokenAddress, priceInfo ? priceInfo.price : 0);
                 
             } catch (error) {
                 showError('조회 중 오류가 발생했습니다.');
@@ -704,7 +786,7 @@
         }
 
         // 결과 표시
-        function displayResults(balances, tokenAddress) {
+        function displayResults(balances, tokenAddress, tokenPrice = 0) {
             if (Object.keys(balances).length === 0) {
                 showError('거래소에서 해당 토큰을 찾을 수 없습니다.');
                 return;
@@ -723,7 +805,6 @@
             });
             
             const totalBalance = cexTotal + dexTotal;
-            const tokenPrice = 1.0; // 실제로는 API에서 가져와야 함
             
             // 통계 표시
             document.getElementById('cexTotal').textContent = cexTotal.toLocaleString();

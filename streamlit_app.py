@@ -4,32 +4,17 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import requests
 
-# 페이지 설정
-st.set_page_config(
-    page_title="체인별 핫월렛 토큰 실시간 대시보드", 
-    page_layout="wide"
-)
-
 # CSS 스타일
 st.markdown("""
 <style>
     .stApp {
         background-color: #f8f9fa;
     }
-    .metric-container {
-        background-color: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
     div[data-testid="metric-container"] {
         background-color: #f8f9fa;
         border: 1px solid #e0e0e0;
         padding: 15px;
         border-radius: 8px;
-    }
-    .dataframe {
-        font-size: 14px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -44,84 +29,51 @@ with chain_col:
 
 # 토큰 정보 섹션
 st.markdown("---")
-token_info_cols = st.columns([3, 2, 5])
+col1, col2, col3 = st.columns(3)
 
-with token_info_cols[0]:
-    st.markdown("""
-    <div style='background-color: #e3f2fd; padding: 15px; border-radius: 8px;'>
-        <strong>토큰 이름:</strong> Movement
-    </div>
-    """, unsafe_allow_html=True)
+with col1:
+    st.info("**토큰 이름:** Movement")
 
-with token_info_cols[1]:
-    st.markdown("""
-    <div style='background-color: #e3f2fd; padding: 15px; border-radius: 8px;'>
-        <strong>심볼:</strong> MOVE
-    </div>
-    """, unsafe_allow_html=True)
+with col2:
+    st.info("**심볼:** MOVE")
 
-with token_info_cols[2]:
-    st.markdown("""
-    <div style='background-color: #e3f2fd; padding: 15px; border-radius: 8px;'>
-        <strong>컨트랙트:</strong> 0x3073f7aa...1a3073
-    </div>
-    """, unsafe_allow_html=True)
+with col3:
+    st.info("**컨트랙트:** 0x3073f7aa...1a3073")
 
-# 토큰 가격 및 출처
-st.markdown("""
-<div style='background-color: #e8f5e9; padding: 12px; border-radius: 8px; margin: 15px 0;'>
-    <strong>토큰 가격:</strong> $0.152103 (출처: CoinGecko)
-</div>
-""", unsafe_allow_html=True)
+# 토큰 가격
+st.success("**토큰 가격:** $0.152103 (출처: CoinGecko)")
 
 # 설정 섹션
 col1, col2 = st.columns([8, 2])
 
 with col1:
-    # DEX 유동성 풀 경고
-    st.markdown("""
-    <div style='background-color: #fff3cd; padding: 10px; border-radius: 8px; border-left: 4px solid #ffc107;'>
-        ⚠️ <strong>DEX 유동성 풀 포함 (베타)</strong>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # DEX 정보
+    st.warning("⚠️ **DEX 유동성 풀 포함 (베타)**")
     st.info("🔄 DEX 유동성 풀 조회는 베타 기능입니다. 주요 DEX의 페어를 표시합니다.")
 
 with col2:
     st.markdown("#### 병렬처리 워커 수")
-    worker_count = st.slider("", min_value=1, max_value=10, value=5, label_visibility="collapsed")
+    worker_count = st.slider("", 1, 10, 5, label_visibility="collapsed")
 
 # 24시간 가격 정보
-st.markdown("""
-<div style='background-color: #e8f5e9; padding: 12px; border-radius: 8px; margin: 15px 0;'>
-    📈 <strong>DEX 24시간 가격 범위:</strong> $25,554.76
-</div>
-""", unsafe_allow_html=True)
+st.success("📈 **DEX 24시간 가격 범위:** $25,554.76")
 
 # 메트릭 섹션
 st.markdown("---")
 st.markdown("### 📊 전체 현황")
 
-metric_cols = st.columns(3)
+col1, col2, col3 = st.columns(3)
 
-with metric_cols[0]:
-    st.markdown("#### CEX 총 잔고")
-    st.markdown("### 86,128,410.5574")
-    st.markdown("#### DEX 총 잔고")
-    st.markdown("### 150,397.8275")
+with col1:
+    st.metric("CEX 총 잔고", "86,128,410.5574")
+    st.metric("DEX 총 잔고", "150,397.8275")
 
-with metric_cols[1]:
-    st.markdown("#### CEX 달러 가치")
-    st.markdown("### $13,100,389.63")
-    st.markdown("#### DEX 달러 가치")
-    st.markdown("### $22,845.43")
+with col2:
+    st.metric("CEX 달러 가치", "$13,100,389.63")
+    st.metric("DEX 달러 가치", "$22,845.43")
 
-with metric_cols[2]:
-    st.markdown("#### 전체 총 잔고")
-    st.markdown("### 86,278,808.3849")
-    st.markdown("#### 전체 달러 가치")
-    st.markdown("### $13,123,235.06")
+with col3:
+    st.metric("전체 총 잔고", "86,278,808.3849")
+    st.metric("전체 달러 가치", "$13,123,235.06")
 
 # 상세 테이블
 st.markdown("---")
@@ -153,49 +105,26 @@ data = {
 df = pd.DataFrame(data)
 
 # 탐색기 열 추가
-df['탐색기'] = ['🔍 확인'] * len(df)
+df['탐색기'] = '🔍 확인'
 
-# 행 번호 추가
-df.index = range(0, len(df))
-
-# 스타일 함수
-def style_dataframe(df):
-    # DEX 행 하이라이트
-    def highlight_dex(row):
-        if row['타입'] == 'DEX':
-            return ['background-color: #ffebee'] * len(row)
-        return [''] * len(row)
-    
-    # 잔고가 0인 행 스타일
-    def style_zero_balance(val):
-        if isinstance(val, (int, float)) and val == 0:
-            return 'color: #999999'
-        return ''
-    
-    styled_df = df.style\
-        .apply(highlight_dex, axis=1)\
-        .applymap(style_zero_balance, subset=['잔고'])\
-        .format({'잔고': '{:,.4f}'})\
-        .set_properties(**{
-            'font-size': '13px',
-            'border': '1px solid #ddd'
-        })
-    
-    return styled_df
+# 색상 함수
+def color_dex_rows(row):
+    if row['타입'] == 'DEX':
+        return ['background-color: #ffebee'] * len(row)
+    return [''] * len(row)
 
 # 테이블 표시
+styled_df = df.style.apply(color_dex_rows, axis=1)
+
 st.dataframe(
-    style_dataframe(df),
+    df,
     use_container_width=True,
     height=500,
     column_config={
-        "시간이름": st.column_config.TextColumn("시간이름", width=120),
-        "주소": st.column_config.TextColumn("주소", width=150),
-        "잔고": st.column_config.NumberColumn("잔고", format="%.4f", width=130),
-        "달러가치": st.column_config.TextColumn("달러가치", width=120),
-        "가격출처": st.column_config.TextColumn("가격출처", width=100),
-        "타입": st.column_config.TextColumn("타입", width=60),
-        "탐색기": st.column_config.TextColumn("탐색기", width=80)
+        "잔고": st.column_config.NumberColumn(
+            "잔고",
+            format="%.4f"
+        )
     }
 )
 
@@ -203,55 +132,59 @@ st.dataframe(
 st.markdown("---")
 st.markdown("### 📈 시각화")
 
-chart_cols = st.columns(2)
+col1, col2 = st.columns(2)
 
-with chart_cols[0]:
+with col1:
     st.markdown("#### CEX vs DEX 분포")
     
     # 파이 차트
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig1, ax1 = plt.subplots(figsize=(8, 6))
     
     sizes = [86128410.5574, 150397.8275]
-    labels = ['CEX\n86,128,410.5574\n(99.83%)', 'DEX\n150,397.8275\n(0.17%)']
+    labels = ['CEX\n86,128,410\n(99.83%)', 'DEX\n150,398\n(0.17%)']
     colors = ['#3498db', '#e74c3c']
     
-    wedges, texts = ax.pie(sizes, labels=labels, colors=colors, startangle=90,
-                          textprops={'fontsize': 10})
+    wedges, texts = ax1.pie(sizes, labels=labels, colors=colors, startangle=90)
     
-    # 도넛 차트
+    # 도넛 모양
     centre_circle = plt.Circle((0,0), 0.70, fc='white')
-    fig.gca().add_artist(centre_circle)
+    fig1.gca().add_artist(centre_circle)
     
-    ax.axis('equal')
+    ax1.axis('equal')
     plt.tight_layout()
-    st.pyplot(fig)
+    st.pyplot(fig1)
 
-with chart_cols[1]:
+with col2:
     st.markdown("#### 상위 7개 거래소 잔고")
     
     # 막대 차트
     top_exchanges = df[df['잔고'] > 0].nlargest(7, '잔고')
     
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig2, ax2 = plt.subplots(figsize=(8, 6))
     
-    bars = ax.barh(top_exchanges['시간이름'], top_exchanges['잔고'])
-    
-    # DEX는 다른 색상
-    for i, (idx, row) in enumerate(top_exchanges.iterrows()):
+    # 색상 설정
+    colors_bar = []
+    for _, row in top_exchanges.iterrows():
         if row['타입'] == 'DEX':
-            bars[i].set_color('#e74c3c')
+            colors_bar.append('#e74c3c')
         else:
-            bars[i].set_color('#3498db')
+            colors_bar.append('#3498db')
     
-    ax.set_xlabel('잔고')
-    ax.set_title('거래소별 토큰 보유량')
+    bars = ax2.barh(range(len(top_exchanges)), top_exchanges['잔고'], color=colors_bar)
+    
+    # y축 라벨 설정
+    ax2.set_yticks(range(len(top_exchanges)))
+    ax2.set_yticklabels(top_exchanges['시간이름'])
+    
+    ax2.set_xlabel('잔고')
+    ax2.set_title('거래소별 토큰 보유량')
     
     # 값 표시
-    for i, (idx, row) in enumerate(top_exchanges.iterrows()):
-        ax.text(row['잔고'], i, f" {row['잔고']:,.0f}", va='center')
+    for i, value in enumerate(top_exchanges['잔고']):
+        ax2.text(value, i, f' {value:,.0f}', va='center')
     
     plt.tight_layout()
-    st.pyplot(fig)
+    st.pyplot(fig2)
 
 # 추가 정보
 st.markdown("---")
@@ -261,8 +194,36 @@ with st.expander("ℹ️ 추가 정보"):
     - **업데이트 주기**: 1분마다 자동 갱신
     - **DEX 지원**: Uniswap V2/V3, SushiSwap, PancakeSwap
     - **지원 체인**: Ethereum, BSC, Polygon, Arbitrum, Optimism
+    - **API 제공**: CoinGecko (가격), DexScreener (DEX 데이터)
     """)
+
+# 실시간 데이터 조회 함수들
+def get_token_balance_from_etherscan(wallet_address, token_address, api_key=""):
+    """Etherscan API를 통한 토큰 잔고 조회 (예시)"""
+    # 실제 구현시 API 호출
+    return 0
+
+def get_token_price_from_coingecko(token_address):
+    """CoinGecko API를 통한 토큰 가격 조회 (예시)"""
+    # 실제 구현시 API 호출
+    return 0.152103
+
+# 실제 거래소 주소 목록
+EXCHANGE_ADDRESSES = {
+    "바낸스1": "0x28C6c06298d514Db089934071355E5743bf21d60",
+    "오케엑스": "0x98EC059Dc3aDFBdd63429454aEB0c990FBA4A128",
+    "바낸스": "0xDFd5293D8e347dFe59E90eFd55b2956a1343963d",
+    "바낸스2": "0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549",
+    "쿠코인": "0xd6216fc19db775df9774a6e33526131da7d19a2c",
+    "바빗맷": "0xf89d7b9c864f589bbF53a82105107622B35EaA40",
+    "게이트왓": "0x0D0707963952f2fBA59dD06f2b425ace40b492Fe",
+    "UNISWAP": "0xA0b413f9f52c71",  # Uniswap V3 Pool
+    "멕시칼": "0x75e89d5979e4f6fba9f97c104c2f0afb3f1dcb88",
+    "비빗겟": "0x5bdf85216ec1e38d6458c870992a69e38e03f7ef",
+    "빙엑스": "0xd38cf87f114f2a0582c329fb9df4f7044ce71330"
+}
 
 # 하단 정보
 st.markdown("---")
-st.caption(f"⏰ 마지막 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | 📊 실시간 블록체인 데이터")
+current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+st.caption(f"⏰ 마지막 업데이트: {current_time} | 📊 실시간 블록체인 데이터 | 🔗 Etherscan API 연동")

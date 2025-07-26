@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 체인별 핫월렛 토큰 실시간 대시보드</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #1a1f2e;
+            color: #fff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .search-section {
+            background: #232937;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        select {
+            background: #1a1f2e;
+            color: white;
+            border: 1px solid #444;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            min-width: 150px;
+        }
+
+        input {
+            flex: 1;
+            background: #1a1f2e;
+            color: white;
+            border: 1px solid #444;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            background: #3b4252;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #4c5565;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .info-card {
+            background: #2e3545;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .info-card.blue {
+            background: #3b4863;
+        }
+
+        .info-card.green {
+            background: #2e4a3e;
+        }
+
+        .info-label {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #232937;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 16px;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .dex-info {
+            background: #2e4a3e;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .chart-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: #232937;
+            padding: 20px;
+            border-radius: 15px;
+            position: relative;
+            height: 400px;
+        }
+
+        .table-container {
+            background: #232937;
+            padding: 20px;
+            border-radius: 15px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+
+        th {
+            background: #2e3545;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background: #2e3545;
+        }
+
+        .wallet-manager {
+            background: #2e3545;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .wallet-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .wallet-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #1a1f2e;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .wallet-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            background: #232937;
+            border-radius: 5px;
+        }
+
+        .delete-btn {
+            background: #d32f2f;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .delete-btn:hover {
+            background: #f44336;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
+
+        .error {
+            background: #d32f2f;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #chartCanvas {
+            max-width: 100%;
+            max-height: 350px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 체인별 핫월렛 토큰 실시간 대시보드</h1>
+        </div>
+
+        <!-- 거래소 지갑 관리 섹션 -->
+        <div class="wallet-manager">
+            <h3>📋 거래소 지갑 관리</h3>
+            <div class="wallet-form">
+                <select id="walletChain">
+                    <option value="ETH">ETH</option>
+                    <option value="BSC">BSC</option>
+                    <option value="Polygon">Polygon</option>
+                </select>
+                <input type="text" id="walletName" placeholder="거래소명 (예: Binance_Hot)">
+                <input type="text" id="walletAddress" placeholder="지갑 주소 (0x...)">
+                <button onclick="addWallet()">추가</button>
+            </div>
+            <div class="wallet-list" id="walletList"></div>
+        </div>
+
+        <!-- 검색 섹션 -->
+        <div class="search-section">
+            <div class="search-row">
+                <label>체인을 선택하세요</label>
+            </div>
+            <div class="search-row">
+                <select id="chainSelect">
+                    <option value="ETH">ETH</option>
+                    <option value="BSC">BSC</option>
+                    <option value="Polygon">Polygon</option>
+                </select>
+                <input type="text" id="tokenInput" placeholder="0xdac17f958d2ee523a2206206994597c13d831ec7">
+                <button onclick="searchToken()">🔍 조회</button>
+            </div>
+        </div>
+
+        <!-- 결과 섹션 -->
+        <div id="results" style="display: none;">
+            <!-- 토큰 정보 -->
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-label">토큰 이름:</div>
+                    <div class="info-value" id="tokenName">Unknown</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">심볼:</div>
+                    <div class="info-value" id="tokenSymbol">UNKNOWN</div>
+                </div>
+                <div class="info-card blue">
+                    <div class="info-label">순위:</div>
+                    <div class="info-value" id="tokenRank">#150</div>
+                </div>
+                <div class="info-card blue">
+                    <div class="info-label">컨트랙트:</div>
+                    <div class="info-value" id="contractAddress" style="font-size: 12px;">-</div>
+                </div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-card green">
+                    <div class="info-label">토큰 가격:</div>
+                    <div class="info-value" id="tokenPrice">$1.000000</div>
+                </div>
+                <div class="info-card green">
+                    <div class="info-label">24h 변동:</div>
+                    <div class="info-value" id="priceChange">🟢 0.01%</div>
+                </div>
+                <div class="info-card green">
+                    <div class="info-label">Market Cap:</div>
+                    <div class="info-value" id="marketCap">$163,078,441,768</div>
+                </div>
+                <div class="info-card green">
+                    <div class="info-label">FDV:</div>
+                    <div class="info-value" id="fdv">$244,617,662,652</div>
+                </div>
+            </div>
+
+            <!-- 통계 -->
+            <div class="stats-section">
+                <div class="stat-card">
+                    <div class="stat-label">CEX 총 잔고</div>
+                    <div class="stat-value" id="cexTotal">0</div>
+                    <div class="stat-label">DEX 총 잔고</div>
+                    <div class="stat-value" id="dexTotal">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">CEX 달러 가치</div>
+                    <div class="stat-value" id="cexValue">$0</div>
+                    <div class="stat-label">DEX 달러 가치</div>
+                    <div class="stat-value" id="dexValue">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">전체 총 잔고</div>
+                    <div class="stat-value" id="totalBalance">0</div>
+                    <div class="stat-label">전체 달러 가치</div>
+                    <div class="stat-value" id="totalValue">$0</div>
+                </div>
+            </div>
+
+            <!-- DEX 정보 -->
+            <div class="dex-info" id="dexInfo" style="display: none;">
+                📈 DEX 24시간 거래량: <span id="dexVolume">$25,554.76</span>
+            </div>
+
+            <!-- 차트와 테이블 -->
+            <div class="chart-section">
+                <div class="chart-container">
+                    <canvas id="chartCanvas"></canvas>
+                </div>
+                <div class="table-container">
+                    <h3>📋 Exchange Status</h3>
+                    <table id="exchangeTable">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Exchange</th>
+                                <th>Address</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 로딩/에러 -->
+        <div id="loading" class="loading" style="display: none;">
+            조회 중...
+        </div>
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        // 로컬 스토리지에서 지갑 정보 관리
+        let wallets = JSON.parse(localStorage.getItem('exchangeWallets') || '{}');
+        
+        // 기본 지갑들 (실제 거래소 핫월렛 주소)
+        const defaultWallets = {
+            "ETH": {
+                "Binance_Hot1": "0x28C6c06298d514Db089934071355E5743bf21d60",
+                "Binance_Hot2": "0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549",
+                "Binance_Hot3": "0xDFd5293D8e347dFe59E90eFd55b2956a1343963d",
+                "Binance_Hot4": "0xF977814e90dA44bFA03b6295A0616a897441aceC",
+                "OKX_Hot1": "0x98EC059Dc3aDFBdd63429454aEB0c990FBA4A128",
+                "OKX_Hot2": "0x06959153B974D0D5fDfd87D561db6d8d4FA0910b",
+                "KuCoin_Hot": "0xd6216fc19db775df9774a6e33526131da7d19a2c",
+                "KuCoin_Hot2": "0xeb2629a2734e272Bcc07BDA959863f316F4bD4Cf",
+                "Bybit_Hot": "0xf89d7b9c864f589bbF53a82105107622B35EaA40",
+                "Gate.io_Hot": "0x0D0707963952f2fBA59dD06f2b425ace40b492Fe",
+                "Gate.io_Hot2": "0x1C4b70a3968436B9A0a9cf5205c787eb81Bb558c",
+                "MEXC_Hot": "0x75e89d5979e4f6fba9f97c104c2f0afb3f1dcb88",
+                "Bitget_Hot": "0x5bdf85216ec1e38d6458c870992a69e38e03f7ef",
+                "Crypto.com_Hot": "0x6262998Ced04146fA42253a5C0AF90CA02dfd2A3",
+                "Huobi_Hot": "0xE93381fB4c4F14bDa253907b18faD305D799241a"
+            },
+            "BSC": {
+                "Binance_BSC": "0x8894E0a0c962CB723c1976a4421c95949bE2D4E3",
+                "Gate.io_BSC": "0x1C4b70a3968436B9A0a9cf5205c787eb81Bb558c",
+                "KuCoin_BSC": "0xEB2d2F1b8c558a40207669291Fda468E50c8A0bB",
+                "MEXC_BSC": "0x4982085C9e2F89F2eCb8131Eca71aFAD896e89CB"
+            },
+            "Polygon": {
+                "Binance_Polygon": "0xe7804c37c13166fF0b37F5aE0BB07A3aEbb6e245",
+                "OKX_Polygon": "0xAA58D356B49C909Ce69c64318E7f8f97E3E9D616"
+            }
+        };
+
+        // 초기화
+        if (Object.keys(wallets).length === 0) {
+            wallets = defaultWallets;
+            localStorage.setItem('exchangeWallets', JSON.stringify(wallets));
+        }
+
+        // 토큰 주소 매핑
+        const tokenAddresses = {
+            "ETH": {
+                "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+                "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+                "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+                "PEPE": "0x6982508145454ce325ddbe47a25d4ec3d2311933",
+                "SHIB": "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE"
+            }
+        };
+
+        let chart = null;
+
+        // 지갑 목록 표시
+        function displayWallets() {
+            const walletList = document.getElementById('walletList');
+            walletList.innerHTML = '';
+            
+            Object.entries(wallets).forEach(([chain, chainWallets]) => {
+                Object.entries(chainWallets).forEach(([name, address]) => {
+                    const item = document.createElement('div');
+                    item.className = 'wallet-item';
+                    item.innerHTML = `
+                        <span>${chain} - ${name}: ${address.substring(0, 10)}...</span>
+                        <button class="delete-btn" onclick="deleteWallet('${chain}', '${name}')">삭제</button>
+                    `;
+                    walletList.appendChild(item);
+                });
+            });
+        }
+
+        // 지갑 추가
+        function addWallet() {
+            const chain = document.getElementById('walletChain').value;
+            const name = document.getElementById('walletName').value.trim();
+            const address = document.getElementById('walletAddress').value.trim();
+            
+            if (!name || !address) {
+                alert('거래소명과 주소를 입력하세요.');
+                return;
+            }
+            
+            if (!address.startsWith('0x') || address.length !== 42) {
+                alert('올바른 주소 형식이 아닙니다.');
+                return;
+            }
+            
+            if (!wallets[chain]) wallets[chain] = {};
+            wallets[chain][name] = address;
+            
+            localStorage.setItem('exchangeWallets', JSON.stringify(wallets));
+            displayWallets();
+            
+            // 입력 필드 초기화
+            document.getElementById('walletName').value = '';
+            document.getElementById('walletAddress').value = '';
+        }
+
+        // 지갑 삭제
+        function deleteWallet(chain, name) {
+            if (confirm(`${chain} - ${name} 지갑을 삭제하시겠습니까?`)) {
+                delete wallets[chain][name];
+                localStorage.setItem('exchangeWallets', JSON.stringify(wallets));
+                displayWallets();
+            }
+        }
+
+        // 토큰 검색
+        async function searchToken() {
+            const chain = document.getElementById('chainSelect').value;
+            const input = document.getElementById('tokenInput').value.trim();
+            
+            if (!input) {
+                showError('토큰 티커 또는 주소를 입력하세요.');
+                return;
+            }
+            
+            let tokenAddress = input;
+            
+            // 티커인 경우 주소로 변환
+            if (!input.startsWith('0x')) {
+                const ticker = input.toUpperCase();
+                if (tokenAddresses[chain] && tokenAddresses[chain][ticker]) {
+                    tokenAddress = tokenAddresses[chain][ticker];
+                } else {
+                    showError(`${ticker} 토큰을 찾을 수 없습니다. 컨트랙트 주소를 직접 입력하세요.`);
+                    return;
+                }
+            }
+            
+            showLoading(true);
+            hideError();
+            
+            try {
+                // 토큰 정보 표시
+                document.getElementById('contractAddress').textContent = 
+                    tokenAddress.substring(0, 10) + '...' + tokenAddress.substring(36);
+                
+                // 잔고 조회 (시뮬레이션)
+                const balances = await getTokenBalances(chain, tokenAddress);
+                
+                // 결과 표시
+                displayResults(balances, tokenAddress);
+                
+            } catch (error) {
+                showError('조회 중 오류가 발생했습니다.');
+                console.error(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 토큰 잔고 조회 (시뮬레이션)
+        async function getTokenBalances(chain, tokenAddress) {
+            const balances = {};
+            const chainWallets = wallets[chain] || {};
+            
+            // 시뮬레이션을 위한 랜덤 잔고 생성
+            Object.entries(chainWallets).forEach(([name, address]) => {
+                if (Math.random() > 0.3) {
+                    balances[name] = Math.floor(Math.random() * 10000000);
+                }
+            });
+            
+            // DEX 추가 (예시)
+            if (Math.random() > 0.5) {
+                balances['Uniswap_V3'] = Math.floor(Math.random() * 5000000);
+            }
+            
+            return balances;
+        }
+
+        // 결과 표시
+        function displayResults(balances, tokenAddress) {
+            if (Object.keys(balances).length === 0) {
+                showError('거래소에서 해당 토큰을 찾을 수 없습니다.');
+                return;
+            }
+            
+            // 통계 계산
+            let cexTotal = 0, dexTotal = 0;
+            const sortedBalances = Object.entries(balances).sort((a, b) => b[1] - a[1]);
+            
+            sortedBalances.forEach(([name, balance]) => {
+                if (name.includes('swap') || name.includes('DEX')) {
+                    dexTotal += balance;
+                } else {
+                    cexTotal += balance;
+                }
+            });
+            
+            const totalBalance = cexTotal + dexTotal;
+            const tokenPrice = 1.0; // 예시 가격
+            
+            // 통계 표시
+            document.getElementById('cexTotal').textContent = cexTotal.toLocaleString();
+            document.getElementById('dexTotal').textContent = dexTotal.toLocaleString();
+            document.getElementById('cexValue').textContent = '$' + (cexTotal * tokenPrice).toLocaleString();
+            document.getElementById('dexValue').textContent = '$' + (dexTotal * tokenPrice).toLocaleString();
+            document.getElementById('totalBalance').textContent = totalBalance.toLocaleString();
+            document.getElementById('totalValue').textContent = '$' + (totalBalance * tokenPrice).toLocaleString();
+            
+            // DEX 정보 표시
+            if (dexTotal > 0) {
+                document.getElementById('dexInfo').style.display = 'block';
+            }
+            
+            // 차트 그리기
+            drawChart(sortedBalances, totalBalance);
+            
+            // 테이블 채우기
+            fillTable(sortedBalances);
+            
+            // 결과 섹션 표시
+            document.getElementById('results').style.display = 'block';
+        }
+
+        // 차트 그리기
+        function drawChart(balances, total) {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            const labels = [];
+            const data = [];
+            const colors = [];
+            
+            // 상위 10개만 표시
+            const displayBalances = balances.slice(0, 10);
+            let othersTotal = 0;
+            
+            if (balances.length > 10) {
+                for (let i = 10; i < balances.length; i++) {
+                    othersTotal += balances[i][1];
+                }
+            }
+            
+            displayBalances.forEach(([name, balance]) => {
+                const percentage = (balance / total * 100).toFixed(1);
+                labels.push(`${name}\n${balance.toLocaleString()}\n(${percentage}%)`);
+                data.push(balance);
+                colors.push(getRandomColor());
+            });
+            
+            if (othersTotal > 0) {
+                const percentage = (othersTotal / total * 100).toFixed(1);
+                labels.push(`Others\n${othersTotal.toLocaleString()}\n(${percentage}%)`);
+                data.push(othersTotal);
+                colors.push('#999');
+            }
+            
+            chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: `${document.getElementById('chainSelect').value} Chain - Token Distribution`,
+                            color: '#fff',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 테이블 채우기
+        function fillTable(balances) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            balances.forEach(([name, balance], index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${index}</td>
+                    <td>${name}</td>
+                    <td>${wallets[document.getElementById('chainSelect').value][name]?.substring(0, 10) || '0x...'}...</td>
+                    <td>${balance.toLocaleString()}</td>
+                `;
+            });
+        }
+
+        // 유틸리티 함수들
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function getRandomColor() {
+            const colors = [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#36A2EB'
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // Enter 키 지원
+        document.getElementById('tokenInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchToken();
+            }
+        });
+
+        // 페이지 로드시 지갑 목록 표시
+        displayWallets();
+    </script>
+</body>
+</html>

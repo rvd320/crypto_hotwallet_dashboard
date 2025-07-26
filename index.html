@@ -1,4 +1,21 @@
-<!DOCTYPE html>
+// 토큰 주소와 CoinGecko ID 매핑
+        const tokenAddresses = {
+            "ETH": {
+                "ETH": { address: "0x0000000000000000000000000000000000000000", coingeckoId: "ethereum" },
+                "USDT": { address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", coingeckoId: "tether" },
+                "USDC": { address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", coingeckoId: "usd-coin" },
+                "WETH": { address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", coingeckoId: "weth" },
+                "PEPE": { address: "0x6982508145454Ce325dDbE47a25d4ec3d2311933", coingeckoId: "pepe" },
+                "SHIB": { address: "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE", coingeckoId: "shiba-inu" },
+                "CRV": { address: "0xD533a949740bb3306d119CC777fa900bA034cd52", coingeckoId: "curve-dao-token" },
+                "LINK": { address: "0x514910771AF9Ca656af840dff83E8264EcF986CA", coingeckoId: "chainlink" },
+                "UNI": { address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", coingeckoId: "uniswap" },
+                "BNB": { address: "0xB8c77482e45F1F44dE1745F52C74426C631bDD52", coingeckoId: "binancecoin" },
+                "MATIC": { address: "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0", coingeckoId: "matic-network" }
+            },
+            "BSC": {
+                "BNB": { address: "0x0000000000000000000000000000000000000000", coingeckoId: "binancecoin" },
+                "USDT": { address: "0x55d398326f99059fF775485246999027B3<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -534,46 +551,74 @@
                 return;
             }
             
-            let tokenAddress = input;
-            let coingeckoId = null;
-            let token_symbol = input.toUpperCase();
-            
-            // 티커인 경우 주소로 변환
-            if (!input.startsWith('0x')) {
-                const ticker = input.toUpperCase();
-                if (tokenAddresses[chain] && tokenAddresses[chain][ticker]) {
-                    tokenAddress = tokenAddresses[chain][ticker].address;
-                    coingeckoId = tokenAddresses[chain][ticker].coingeckoId;
-                } else {
-                    showError(`${ticker} 토큰을 찾을 수 없습니다. 컨트랙트 주소를 직접 입력하세요.`);
-                    return;
-                }
-            }
-            
             showLoading(true);
             hideError();
             
             try {
+                let tokenAddress = input;
+                let tokenInfo = null;
+                let token_symbol = input.toUpperCase();
+                
+                // 주소가 아닌 경우 CoinGecko에서 검색
+                if (!input.startsWith('0x')) {
+                    // CoinGecko에서 토큰 검색
+                    const searchResponse = await fetch(`https://api.coingecko.com/api/v3/search?query=${input}`);
+                    const searchData = await searchResponse.json();
+                    
+                    if (searchData.coins && searchData.coins.length > 0) {
+                        // 첫 번째 결과 사용
+                        const coin = searchData.coins[0];
+                        tokenInfo = {
+                            id: coin.id,
+                            symbol: coin.symbol.toUpperCase(),
+                            name: coin.name
+                        };
+                        
+                        // 플랫폼별 컨트랙트 주소 가져오기
+                        const platformMap = {
+                            'ETH': 'ethereum',
+                            'BSC': 'binance-smart-chain',
+                            'Polygon': 'polygon-pos'
+                        };
+                        
+                        const coinDetailResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}`);
+                        const coinDetail = await coinDetailResponse.json();
+                        
+                        if (coinDetail.platforms && coinDetail.platforms[platformMap[chain]]) {
+                            tokenAddress = coinDetail.platforms[platformMap[chain]];
+                        } else if (coin.symbol.toUpperCase() === chain) {
+                            // 네이티브 코인인 경우
+                            tokenAddress = '0x0000000000000000000000000000000000000000';
+                        } else {
+                            showError(`${chain} 체인에서 ${input} 토큰을 찾을 수 없습니다.`);
+                            return;
+                        }
+                    } else {
+                        showError(`${input} 토큰을 찾을 수 없습니다.`);
+                        return;
+                    }
+                }
+                
                 // 토큰 정보 표시
                 document.getElementById('contractAddress').textContent = tokenAddress;
-                document.getElementById('tokenSymbol').textContent = token_symbol;
-                document.getElementById('tokenName').textContent = token_symbol;
+                document.getElementById('tokenSymbol').textContent = tokenInfo ? tokenInfo.symbol : token_symbol;
+                document.getElementById('tokenName').textContent = tokenInfo ? tokenInfo.name : token_symbol;
                 
-                // CoinGecko에서 가격 정보 가져오기
+                // 가격 정보 가져오기
                 let priceData = { price: 1, marketCap: 0, change24h: 0 };
-                if (coingeckoId) {
-                    priceData = await getTokenPrice(coingeckoId);
+                if (tokenInfo) {
+                    priceData = await getTokenPrice(tokenInfo.id);
                 }
                 
                 // 가격 정보 업데이트
                 document.getElementById('tokenPrice').textContent = 
-                    priceData.price < 0.01 ? `$${priceData.price.toFixed(8)}` : `$${priceData.price.toFixed(2)}`;
+                    priceData.price < 0.01 ? `${priceData.price.toFixed(8)}` : `${priceData.price.toFixed(2)}`;
                 document.getElementById('priceChange').textContent = 
                     `${priceData.change24h > 0 ? '🟢' : '🔴'} ${priceData.change24h.toFixed(2)}%`;
                 document.getElementById('marketCap').textContent = 
-                    `$${priceData.marketCap.toLocaleString()}`;
+                    `${priceData.marketCap.toLocaleString()}`;
                 document.getElementById('fdv').textContent = 
-                    `$${(priceData.marketCap * 1.5).toLocaleString()}`;
+                    `${(priceData.marketCap * 1.5).toLocaleString()}`;
                 
                 // 잔고 조회 (시뮬레이션)
                 const balances = await getTokenBalances(chain, tokenAddress);
